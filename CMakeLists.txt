@@ -139,6 +139,7 @@ option(
   FORCE_SANITIZER
   "Forces building with sanitizers even if the Python and R modules are enabled."
   FALSE)
+option(ENABLE_LLVM "Enable LLVM to support JIT execution." FALSE)
 if((BUILD_PYTHON)
    AND (ENABLE_SANITIZER OR ENABLE_UBSAN)
    AND ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
@@ -208,6 +209,24 @@ if(${ENABLE_UBSAN})
       endif()
     endif()
   endif()
+endif()
+
+if(${ENABLE_LLVM})
+  # See also https://llvm.org/docs/CMake.html#embedding-llvm-in-your-project
+  find_package(LLVM REQUIRED CONFIG)
+
+  separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
+  add_definitions(${LLVM_DEFINITIONS_LIST})
+  message(STATUS "LLVM definitions: " ${LLVM_DEFINITIONS})
+
+  # Add "SYSTEM" to suppress warnings from LLVM headers
+  include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
+  message(STATUS "LLVM include dirs: " ${LLVM_INCLUDE_DIRS})
+  
+  llvm_map_components_to_libnames(DUCKDB_LLVM_LIBS core)
+  message(STATUS "Enabled LLVM components: " ${DUCKDB_LLVM_LIBS})
+  link_libraries(${DUCKDB_LLVM_LIBS})
+  add_compile_definitions(-DDUCKDB_ENABLE_LLVM)
 endif()
 
 option(EXPLICIT_EXCEPTIONS "Explicitly enable C++ exceptions." FALSE)
