@@ -32,6 +32,7 @@ public:
 	bool IsScalar() const override;
 	bool HasParameter() const override;
 	bool IsFoldable() const override;
+	bool IsCompilable() const override;
 
 	string ToString() const override;
 
