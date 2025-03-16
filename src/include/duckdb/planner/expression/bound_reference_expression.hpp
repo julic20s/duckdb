@@ -32,6 +32,8 @@ public:
 		return false;
 	}
 
+	bool IsCompilable() const override;
+
 	string ToString() const override;
 
 	hash_t Hash() const override;
