@@ -23,6 +23,8 @@ public:
 	vector<unique_ptr<Expression>> children;
 
 public:
+	bool IsCompilable() const override;
+
 	string ToString() const override;
 
 	bool Equals(const BaseExpression &other) const override;
