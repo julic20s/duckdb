@@ -13,9 +13,11 @@
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/execution/expression_executor_state.hpp"
+#include "duckdb/execution/jit_rewriter.hpp"
 #include "duckdb/function/function.hpp"
 #include "duckdb/storage/statistics/base_statistics.hpp"
-#include "duckdb/common/optional_ptr.hpp"
+
+#include <llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -105,6 +107,8 @@ typedef LogicalType (*bind_lambda_function_t)(const idx_t parameter_idx, const L
 //! The type to bind lambda-specific parameter types
 typedef void (*get_modified_databases_t)(ClientContext &context, FunctionModifiedDatabasesInput &input);
 
+typedef llvm::Value *(*function_ir_generate_t)(JITRewriter &rewriter, const vector<llvm::Value *> &arguments);
+
 typedef void (*function_serialize_t)(Serializer &serializer, const optional_ptr<FunctionData> bind_data,
                                      const ScalarFunction &function);
 typedef unique_ptr<FunctionData> (*function_deserialize_t)(Deserializer &deserializer, ScalarFunction &function);
@@ -121,7 +125,8 @@ public:
 	                          LogicalType varargs = LogicalType(LogicalTypeId::INVALID),
 	                          FunctionStability stability = FunctionStability::CONSISTENT,
 	                          FunctionNullHandling null_handling = FunctionNullHandling::DEFAULT_NULL_HANDLING,
-	                          bind_lambda_function_t bind_lambda = nullptr);
+	                          bind_lambda_function_t bind_lambda = nullptr,
+	                          function_ir_generate_t ir_generate = nullptr);
 
 	DUCKDB_API ScalarFunction(vector<LogicalType> arguments, LogicalType return_type, scalar_function_t function,
 	                          bind_scalar_function_t bind = nullptr, dependency_function_t dependency = nullptr,
@@ -129,7 +134,8 @@ public:
 	                          LogicalType varargs = LogicalType(LogicalTypeId::INVALID),
 	                          FunctionStability stability = FunctionStability::CONSISTENT,
 	                          FunctionNullHandling null_handling = FunctionNullHandling::DEFAULT_NULL_HANDLING,
-	                          bind_lambda_function_t bind_lambda = nullptr);
+	                          bind_lambda_function_t bind_lambda = nullptr,
+	                          function_ir_generate_t ir_generate = nullptr);
 
 	//! The main scalar function to execute
 	scalar_function_t function;
@@ -147,6 +153,7 @@ public:
 	function_bind_expression_t bind_expression;
 	//! Gets the modified databases (if any)
 	get_modified_databases_t get_modified_databases;
+	function_ir_generate_t ir_generate;
 
 	function_serialize_t serialize;
 	function_deserialize_t deserialize;

@@ -1,4 +1,5 @@
 add_subdirectory(expression_executor)
+add_subdirectory(expression_ir)
 add_subdirectory(nested_loop_join)
 add_subdirectory(operator)
 add_subdirectory(physical_plan)
@@ -13,6 +14,8 @@ add_library_unity(
   column_binding_resolver.cpp
   expression_executor.cpp
   expression_executor_state.cpp
+  expression_ir_generator.cpp
+  jit_rewriter.cpp
   join_hashtable.cpp
   perfect_aggregate_hashtable.cpp
   physical_operator.cpp

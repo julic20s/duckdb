@@ -36,6 +36,9 @@ public:
 	virtual bool IsConsistent() const;
 	virtual bool PropagatesNullValues() const;
 	virtual bool IsFoldable() const;
+	virtual bool IsCompilable() const {
+		return false;
+	}
 
 	hash_t Hash() const override;
 
