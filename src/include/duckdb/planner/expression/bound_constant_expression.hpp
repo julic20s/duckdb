@@ -32,5 +32,7 @@ public:
 
 	void Serialize(Serializer &serializer) const override;
 	static unique_ptr<Expression> Deserialize(Deserializer &deserializer);
+
+	bool IsCompilable() const override;
 };
 } // namespace duckdb
