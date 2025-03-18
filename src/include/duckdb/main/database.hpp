@@ -56,6 +56,9 @@ public:
 	DUCKDB_API ObjectCache &GetObjectCache();
 	DUCKDB_API ConnectionManager &GetConnectionManager();
 	DUCKDB_API ValidChecker &GetValidChecker();
+#ifdef DUCKDB_ENABLE_LLVM
+	DUCKDB_API JITRewriter &GetJITRewriter();
+#endif
 	DUCKDB_API void SetExtensionLoaded(const string &extension_name, ExtensionInstallInfo &install_info);
 
 	idx_t NumberOfThreads();
@@ -91,6 +94,9 @@ private:
 	ValidChecker db_validity;
 	unique_ptr<DatabaseFileSystem> db_file_system;
 	shared_ptr<DatabaseCacheEntry> db_cache_entry;
+#ifdef DUCKDB_ENABLE_LLVM
+	unique_ptr<JITRewriter> jit_rewriter;
+#endif
 };
 
 //! The database object. This object holds the catalog and all the

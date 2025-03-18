@@ -20,9 +20,9 @@
 #include "duckdb/planner/expression/bound_parameter_expression.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
 
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
-#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
 
 namespace duckdb {
@@ -105,7 +105,7 @@ public:
 	explicit ExpressionIRGenerator(const vector<unique_ptr<Expression>> &expressions) : expressions(expressions) {
 	}
 
-	vector<llvm::Value *> Generate(JITRewriter &rewriter, const vector<llvm::Value *> &input);
+	vector<llvm::Value *> Generate(JITRewriter &rewriter, llvm::IRBuilder<> &b, const vector<llvm::Value *> &input);
 
 private:
 	llvm::Value *Generate(Expression &expr);
@@ -117,6 +117,7 @@ private:
 
 	const vector<unique_ptr<Expression>> &expressions;
 	JITRewriter *rewriter;
+	llvm::IRBuilder<> *b;
 	const vector<llvm::Value *> *input;
 };
 

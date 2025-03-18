@@ -1,7 +1,6 @@
 add_library_unity(
   duckdb_expression_ir
   OBJECT
-  ir_comparison.cpp
   ir_conjunction.cpp
   ir_constant.cpp
   ir_function.cpp

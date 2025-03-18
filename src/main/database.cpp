@@ -1,8 +1,10 @@
 #include "duckdb/main/database.hpp"
 
 #include "duckdb/catalog/catalog.hpp"
+#include "duckdb/common/helper.hpp"
 #include "duckdb/common/virtual_file_system.hpp"
 #include "duckdb/execution/index/index_type_set.hpp"
+#include "duckdb/execution/jit_rewriter.hpp"
 #include "duckdb/execution/operator/helper/physical_set.hpp"
 #include "duckdb/function/cast/cast_function_set.hpp"
 #include "duckdb/function/compression_function.hpp"
@@ -310,6 +312,10 @@ void DatabaseInstance::Initialize(const char *database_path, DBConfig *user_conf
 	// only increase thread count after storage init because we get races on catalog otherwise
 	scheduler->SetThreads(config.options.maximum_threads, config.options.external_threads);
 	scheduler->RelaunchThreads();
+
+#ifdef DUCKDB_ENABLE_LLVM
+	jit_rewriter = make_uniq<JITRewriter>();
+#endif
 }
 
 DuckDB::DuckDB(const char *path, DBConfig *new_config) : instance(make_shared_ptr<DatabaseInstance>()) {
@@ -507,5 +513,15 @@ ValidChecker &DatabaseInstance::GetValidChecker() {
 ValidChecker &ValidChecker::Get(DatabaseInstance &db) {
 	return db.GetValidChecker();
 }
+
+#ifdef DUCKDB_ENABLE_LLVM
+JITRewriter &DatabaseInstance::GetJITRewriter() {
+	return *jit_rewriter;
+}
+
+JITRewriter &JITRewriter::Get(DatabaseInstance &db) {
+	return db.GetJITRewriter();
+}
+#endif
 
 } // namespace duckdb

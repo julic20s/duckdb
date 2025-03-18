@@ -1,7 +1,23 @@
 #include "duckdb/execution/operator/projection/physical_projection.hpp"
-#include "duckdb/parallel/thread_context.hpp"
+
+#include "duckdb/common/helper.hpp"
+#include "duckdb/common/unique_ptr.hpp"
 #include "duckdb/execution/expression_executor.hpp"
+#include "duckdb/execution/expression_ir_generator.hpp"
+#include "duckdb/execution/jit_rewriter.hpp"
+#include "duckdb/main/database.hpp"
+#include "duckdb/parallel/meta_pipeline.hpp"
+#include "duckdb/parallel/thread_context.hpp"
+#include "duckdb/planner/expression.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
+
+#include <cassert>
+#include <llvm-19/llvm/ADT/ArrayRef.h>
+#include <llvm/IR/BasicBlock.h>
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -27,8 +43,9 @@ PhysicalProjection::PhysicalProjection(vector<LogicalType> types, vector<unique_
 
 OperatorResultType PhysicalProjection::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                GlobalOperatorState &gstate, OperatorState &state_p) const {
-	auto &state = state_p.Cast<ProjectionState>();
-	state.executor.Execute(input, chunk);
+	// auto &state = state_p.Cast<ProjectionState>();
+	// state.executor.Execute(input, chunk);
+
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 
@@ -82,6 +99,29 @@ InsertionOrderPreservingMap<string> PhysicalProjection::ParamsToString() const {
 	result["__projections__"] = projections;
 	SetEstimatedCardinality(result, estimated_cardinality);
 	return result;
+}
+
+void PhysicalProjection::BuildPipelines(Pipeline &current, MetaPipeline &meta_pipeline) {
+	op_state.reset();
+
+	auto &state = meta_pipeline.GetState();
+	if (children.size() != 1) {
+		throw InternalException("Projection operator not supported in BuildPipelines");
+	}
+
+	JITRewriter &rewriter = current.GetClientContext().db->GetJITRewriter();
+	llvm::IRBuilder<> b(rewriter.context);
+	auto fn = make_uniq<JITRewriter::Function>(rewriter, "projection_execute", b.getVoidTy(),
+	                                           llvm::ArrayRef {
+	                                               b.getPtrTy(), // void * input[]
+	                                               b.getPtrTy(), // void * chunk[]
+	                                           });
+	fn->CreateNewBlock(b, "entry");
+	ExpressionIRGenerator(select_list).Generate(rewriter, b, {});
+	execute_fn = reinterpret_cast<decltype(execute_fn)>(rewriter.Register(std::move(fn)));
+
+	state.AddPipelineOperator(current, *this);
+	children[0]->BuildPipelines(current, meta_pipeline);
 }
 
 } // namespace duckdb

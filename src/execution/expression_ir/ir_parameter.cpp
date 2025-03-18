@@ -7,7 +7,7 @@ bool BoundParameterExpression::IsCompilable() const {
 }
 
 llvm::Value *ExpressionIRGenerator::Generate(BoundParameterExpression &expr) {
-	return CreateNativeValue(rewriter->builder, expr.parameter_data->GetValue());
+	return CreateNativeValue(*b, expr.parameter_data->GetValue());
 }
 
 } // namespace duckdb
