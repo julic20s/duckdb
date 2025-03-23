@@ -4,6 +4,7 @@
 #include "duckdb/common/helper.hpp"
 #include "duckdb/common/virtual_file_system.hpp"
 #include "duckdb/execution/index/index_type_set.hpp"
+#include "duckdb/execution/jit_engine.hpp"
 #include "duckdb/execution/jit_rewriter.hpp"
 #include "duckdb/execution/operator/helper/physical_set.hpp"
 #include "duckdb/function/cast/cast_function_set.hpp"
@@ -314,7 +315,7 @@ void DatabaseInstance::Initialize(const char *database_path, DBConfig *user_conf
 	scheduler->RelaunchThreads();
 
 #ifdef DUCKDB_ENABLE_LLVM
-	jit_rewriter = make_uniq<JITRewriter>();
+	jit_engine = make_uniq<JITEngine>();
 #endif
 }
 
@@ -515,12 +516,12 @@ ValidChecker &ValidChecker::Get(DatabaseInstance &db) {
 }
 
 #ifdef DUCKDB_ENABLE_LLVM
-JITRewriter &DatabaseInstance::GetJITRewriter() {
-	return *jit_rewriter;
+JITEngine &DatabaseInstance::GetJITEngine() {
+	return *jit_engine;
 }
 
-JITRewriter &JITRewriter::Get(DatabaseInstance &db) {
-	return db.GetJITRewriter();
+JITEngine &JITEngine::Get(DatabaseInstance &db) {
+	return db.GetJITEngine();
 }
 #endif
 

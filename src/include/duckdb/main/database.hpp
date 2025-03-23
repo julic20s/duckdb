@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "duckdb/execution/jit_engine.hpp"
 #include "duckdb/main/config.hpp"
 #include "duckdb/main/valid_checker.hpp"
 #include "duckdb/common/winapi.hpp"
@@ -57,7 +58,7 @@ public:
 	DUCKDB_API ConnectionManager &GetConnectionManager();
 	DUCKDB_API ValidChecker &GetValidChecker();
 #ifdef DUCKDB_ENABLE_LLVM
-	DUCKDB_API JITRewriter &GetJITRewriter();
+	DUCKDB_API JITEngine &GetJITEngine();
 #endif
 	DUCKDB_API void SetExtensionLoaded(const string &extension_name, ExtensionInstallInfo &install_info);
 
@@ -95,7 +96,7 @@ private:
 	unique_ptr<DatabaseFileSystem> db_file_system;
 	shared_ptr<DatabaseCacheEntry> db_cache_entry;
 #ifdef DUCKDB_ENABLE_LLVM
-	unique_ptr<JITRewriter> jit_rewriter;
+	unique_ptr<JITEngine> jit_engine;
 #endif
 };
 
