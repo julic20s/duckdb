@@ -8,10 +8,13 @@
 
 #pragma once
 
-#include "duckdb/common/types.hpp"
-#include "duckdb/common/type_util.hpp"
 #include "duckdb/common/exception.hpp"
+#include "duckdb/common/type_util.hpp"
+#include "duckdb/common/types.hpp"
 #include "duckdb/common/types/cast_helpers.hpp"
+
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -19,6 +22,14 @@ struct AddOperator {
 	template <class TA, class TB, class TR>
 	static inline TR Operation(TA left, TB right) {
 		return left + right;
+	}
+
+	static inline llvm::Value *GenerateIR(llvm::IRBuilder<> &b, llvm::Value *lhs, llvm::Value *rhs) {
+		// TODO: OVERFLOW CHECK
+		if (lhs->getType()->isFloatingPointTy() || rhs->getType()->isFloatingPointTy()) {
+			return b.CreateFAdd(lhs, rhs);
+		}
+		return b.CreateAdd(lhs, rhs);
 	}
 };
 
@@ -89,6 +100,14 @@ struct AddOperatorOverflowCheck {
 			                          NumericHelper::ToString(left), NumericHelper::ToString(right));
 		}
 		return result;
+	}
+
+	static inline llvm::Value *GenerateIR(llvm::IRBuilder<> &b, llvm::Value *lhs, llvm::Value *rhs) {
+		// TODO: OVERFLOW CHECK
+		if (lhs->getType()->isFloatingPointTy() || rhs->getType()->isFloatingPointTy()) {
+			return b.CreateFAdd(lhs, rhs);
+		}
+		return b.CreateAdd(lhs, rhs);
 	}
 };
 

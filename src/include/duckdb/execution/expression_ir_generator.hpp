@@ -12,7 +12,6 @@
 #include "duckdb/common/types/value.hpp"
 #include "duckdb/common/unique_ptr.hpp"
 #include "duckdb/common/vector.hpp"
-#include "duckdb/execution/jit_rewriter.hpp"
 #include "duckdb/planner/expression.hpp"
 #include "duckdb/planner/expression/bound_conjunction_expression.hpp"
 #include "duckdb/planner/expression/bound_constant_expression.hpp"
@@ -20,6 +19,7 @@
 #include "duckdb/planner/expression/bound_parameter_expression.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
 
+#include <llvm-19/llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
@@ -100,12 +100,45 @@ inline llvm::Value *CreateNativeValue(llvm::IRBuilder<> &b, const Value &value) 
 	}
 }
 
-class ExpressionIRGenerator {
+class ExpressionInputTypeGenerator {
 public:
-	explicit ExpressionIRGenerator(const vector<unique_ptr<Expression>> &expressions) : expressions(expressions) {
+	explicit ExpressionInputTypeGenerator(llvm::LLVMContext &ctx, const vector<unique_ptr<Expression>> &expressions)
+	    : ctx(ctx), expressions(expressions) {
 	}
 
-	vector<llvm::Value *> Generate(JITRewriter &rewriter, llvm::IRBuilder<> &b, const vector<llvm::Value *> &input);
+	pair<llvm::Type *, unordered_map<storage_t, unsigned>> Generate();
+
+private:
+	void ReferenceInput(storage_t index, const LogicalType &type);
+
+	void Generate(Expression &expr);
+	void Generate(BoundConjunctionExpression &expr);
+	void Generate(BoundFunctionExpression &expr);
+	void Generate(BoundReferenceExpression &expr);
+
+	llvm::LLVMContext &ctx;
+	const vector<unique_ptr<Expression>> &expressions;
+	vector<llvm::Type *> members;
+	vector<LogicalTypeId> types;
+	// (i-th input, i-th member)
+	unordered_map<storage_t, unsigned> ref_map;
+};
+
+class ExpressionIRGenerator {
+public:
+	explicit ExpressionIRGenerator(llvm::IRBuilder<> &b, const vector<unique_ptr<Expression>> &expressions)
+	    : b(b), expressions(expressions) {
+	}
+
+	llvm::FixedVectorType *GetOutputArrType() {
+		return llvm::FixedVectorType::get(b.getPtrTy(), expressions.size());
+	}
+
+	llvm::Type *GetOutputType(size_t index) {
+		return GetNativeType(b.getContext(), expressions[index]->return_type.InternalType());
+	}
+
+	vector<llvm::Value *> Generate(llvm::Value *input, const unordered_map<storage_t, unsigned> &ref_map);
 
 private:
 	llvm::Value *Generate(Expression &expr);
@@ -115,10 +148,11 @@ private:
 	llvm::Value *Generate(BoundParameterExpression &expr);
 	llvm::Value *Generate(BoundReferenceExpression &expr);
 
+	llvm::IRBuilder<> &b;
 	const vector<unique_ptr<Expression>> &expressions;
-	JITRewriter *rewriter;
-	llvm::IRBuilder<> *b;
-	const vector<llvm::Value *> *input;
+
+	llvm::Value *input;
+	const unordered_map<storage_t, unsigned> *ref_map;
 };
 
 } // namespace duckdb

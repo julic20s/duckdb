@@ -6,9 +6,9 @@
 namespace duckdb {
 
 bool BoundFunctionExpression::IsCompilable() const {
-    if (function.ir_generate == nullptr) {
-        return false;
-    }
+	if (function.ir_generate == nullptr) {
+		return false;
+	}
 	return std::all_of(children.begin(), children.end(), [](auto &child) { return child->IsCompilable(); });
 }
 
@@ -18,7 +18,7 @@ llvm::Value *ExpressionIRGenerator::Generate(BoundFunctionExpression &expr) {
 	for (auto &child : expr.children) {
 		arguments.push_back(Generate(*child));
 	}
-	return expr.function.ir_generate(*rewriter, arguments);
+	return expr.function.ir_generate(b, arguments);
 }
 
 } // namespace duckdb

@@ -1,3 +1,4 @@
+#include "duckdb/common/assert.hpp"
 #include "duckdb/common/enum_util.hpp"
 #include "duckdb/common/operator/add.hpp"
 #include "duckdb/common/operator/multiply.hpp"
@@ -16,6 +17,7 @@
 #include "duckdb/planner/expression/bound_function_expression.hpp"
 
 #include <limits>
+#include <llvm-19/llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -307,6 +309,12 @@ ScalarFunction AddFun::GetFunction(const LogicalType &type) {
 	}
 }
 
+template <class OP>
+static llvm::Value *GenerateScalarBinaryIR(llvm::IRBuilder<> &b, const vector<llvm::Value *> &arguments) {
+	D_ASSERT(arguments.size() == 2);
+	return OP::GenerateIR(b, arguments[0], arguments[1]);
+}
+
 ScalarFunction AddFun::GetFunction(const LogicalType &left_type, const LogicalType &right_type) {
 	if (left_type.IsNumeric() && left_type.id() == right_type.id()) {
 		if (left_type.id() == LogicalTypeId::DECIMAL) {
@@ -316,12 +324,17 @@ ScalarFunction AddFun::GetFunction(const LogicalType &left_type, const LogicalTy
 			function.deserialize = DeserializeDecimalArithmetic<AddOperator, DecimalAddOverflowCheck>;
 			return function;
 		} else if (left_type.IsIntegral()) {
-			return ScalarFunction("+", {left_type, right_type}, left_type,
-			                      GetScalarIntegerFunction<AddOperatorOverflowCheck>(left_type.InternalType()), nullptr,
-			                      nullptr, PropagateNumericStats<TryAddOperator, AddPropagateStatistics, AddOperator>);
+			auto function =
+			    ScalarFunction("+", {left_type, right_type}, left_type,
+			                   GetScalarIntegerFunction<AddOperatorOverflowCheck>(left_type.InternalType()), nullptr,
+			                   nullptr, PropagateNumericStats<TryAddOperator, AddPropagateStatistics, AddOperator>);
+			function.ir_generate = GenerateScalarBinaryIR<AddOperatorOverflowCheck>;
+			return function;
 		} else {
-			return ScalarFunction("+", {left_type, right_type}, left_type,
-			                      GetScalarBinaryFunction<AddOperator>(left_type.InternalType()));
+			auto function = ScalarFunction("+", {left_type, right_type}, left_type,
+			                               GetScalarBinaryFunction<AddOperator>(left_type.InternalType()));
+			function.ir_generate = GenerateScalarBinaryIR<AddOperator>;
+			return function;
 		}
 	}
 

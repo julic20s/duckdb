@@ -222,8 +222,9 @@ if(${ENABLE_LLVM})
   # Add "SYSTEM" to suppress warnings from LLVM headers
   include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
   message(STATUS "LLVM include dirs: " ${LLVM_INCLUDE_DIRS})
-  
-  llvm_map_components_to_libnames(DUCKDB_LLVM_LIBS core)
+
+  # Use llvm-config --components to list all available components
+  llvm_map_components_to_libnames(DUCKDB_LLVM_LIBS core executionengine irprinter native orcjit support)
   message(STATUS "Enabled LLVM components: " ${DUCKDB_LLVM_LIBS})
   link_libraries(${DUCKDB_LLVM_LIBS})
   add_compile_definitions(-DDUCKDB_ENABLE_LLVM)

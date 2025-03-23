@@ -13,10 +13,10 @@
 #include "duckdb/common/vector_operations/unary_executor.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
 #include "duckdb/execution/expression_executor_state.hpp"
-#include "duckdb/execution/jit_rewriter.hpp"
 #include "duckdb/function/function.hpp"
 #include "duckdb/storage/statistics/base_statistics.hpp"
 
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
 
 namespace duckdb {
@@ -107,7 +107,7 @@ typedef LogicalType (*bind_lambda_function_t)(const idx_t parameter_idx, const L
 //! The type to bind lambda-specific parameter types
 typedef void (*get_modified_databases_t)(ClientContext &context, FunctionModifiedDatabasesInput &input);
 
-typedef llvm::Value *(*function_ir_generate_t)(JITRewriter &rewriter, const vector<llvm::Value *> &arguments);
+typedef llvm::Value *(*function_ir_generate_t)(llvm::IRBuilder<> &b, const vector<llvm::Value *> &arguments);
 
 typedef void (*function_serialize_t)(Serializer &serializer, const optional_ptr<FunctionData> bind_data,
                                      const ScalarFunction &function);

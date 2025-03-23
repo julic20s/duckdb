@@ -15,7 +15,7 @@ add_library_unity(
   expression_executor.cpp
   expression_executor_state.cpp
   expression_ir_generator.cpp
-  jit_rewriter.cpp
+  jit_engine.cpp
   join_hashtable.cpp
   perfect_aggregate_hashtable.cpp
   physical_operator.cpp

@@ -17,33 +17,33 @@ bool BoundConjunctionExpression::IsCompilable() const {
 }
 
 llvm::Value *ExpressionIRGenerator::Generate(BoundConjunctionExpression &expr) {
-	llvm::Value *result_ptr = b->CreateAlloca(b->getInt1Ty());
+	llvm::Value *result_ptr = b.CreateAlloca(b.getInt1Ty());
 	bool first = true;
 	D_ASSERT(expr.children.size() > 0);
 	for (auto &child : expr.children) {
-		llvm::Value *cond = b->CreateICmpNE(Generate(*child), b->getInt1(false));
+		llvm::Value *cond = b.CreateICmpNE(Generate(*child), b.getInt1(false));
 		if (first) {
-			b->CreateStore(cond, result_ptr);
+			b.CreateStore(cond, result_ptr);
 			first = false;
 			continue;
 		}
 
-		llvm::Value *cur_result = b->CreateLoad(b->getInt1Ty(), result_ptr);
+		llvm::Value *cur_result = b.CreateLoad(b.getInt1Ty(), result_ptr);
 		llvm::Value *next_result;
 		switch (expr.type) {
 		case ExpressionType::CONJUNCTION_AND:
-			next_result = b->CreateAnd(cur_result, cond);
+			next_result = b.CreateAnd(cur_result, cond);
 			break;
 		case ExpressionType::CONJUNCTION_OR:
-			next_result = b->CreateOr(cur_result, cond);
+			next_result = b.CreateOr(cur_result, cond);
 			break;
 		default:
 			throw InternalException("Unknown conjunction type!");
 		}
-		b->CreateStore(next_result, result_ptr);
+		b.CreateStore(next_result, result_ptr);
 	}
 
-	return b->CreateLoad(b->getInt1Ty(), result_ptr);
+	return b.CreateLoad(b.getInt1Ty(), result_ptr);
 }
 
 } // namespace duckdb

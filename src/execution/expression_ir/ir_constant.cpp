@@ -8,7 +8,7 @@ bool BoundConstantExpression::IsCompilable() const {
 }
 
 llvm::Value *ExpressionIRGenerator::Generate(BoundConstantExpression &expr) {
-	return CreateNativeValue(*b, expr.value);
+	return CreateNativeValue(b, expr.value);
 }
 
 } // namespace duckdb
