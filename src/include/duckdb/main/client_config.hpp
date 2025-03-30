@@ -145,6 +145,9 @@ struct ClientConfig {
 	//! (empty = print to console)
 	string http_logging_output;
 
+	//! Enable LLVM JIT query compilation
+	bool query_compilation = true;
+
 public:
 	static ClientConfig &GetConfig(ClientContext &context);
 	static const ClientConfig &GetConfig(const ClientContext &context);

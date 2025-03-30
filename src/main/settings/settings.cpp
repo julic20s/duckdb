@@ -2053,4 +2053,19 @@ Value HTTPLoggingOutputSetting::GetSetting(const ClientContext &context) {
 	return Value(ClientConfig::GetConfig(context).http_logging_output);
 }
 
+//===--------------------------------------------------------------------===//
+// QueryCompilation Setting
+//===--------------------------------------------------------------------===//
+void QueryCompilationSetting::ResetLocal(ClientContext &context) {
+	ClientConfig::GetConfig(context).query_compilation = ClientConfig().query_compilation;
+}
+
+void QueryCompilationSetting::SetLocal(ClientContext &context, const Value &input) {
+	ClientConfig::GetConfig(context).query_compilation = input.GetValue<bool>();
+}
+
+Value QueryCompilationSetting::GetSetting(const ClientContext &context) {
+	return Value(ClientConfig::GetConfig(context).query_compilation);
+}
+
 } // namespace duckdb

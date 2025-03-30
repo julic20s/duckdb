@@ -25,14 +25,14 @@ pair<llvm::Type *, unordered_map<storage_t, unsigned>> ExpressionInputTypeGenera
 	auto type = llvm::StructType::create(members);
 	members.clear();
 	types.clear();
-	return {type, std::move(ref_map)};
+	return {type, std::move(input_tuple_index)};
 }
 
 void ExpressionInputTypeGenerator::ReferenceInput(storage_t index, const LogicalType &type) {
 	if (!HasNativeType(type.InternalType())) {
 		throw std::runtime_error("Attempt to reference input in IR as a unsupported type: " + type.ToString());
 	}
-	auto [it, added] = ref_map.emplace(index, members.size());
+	auto [it, added] = input_tuple_index.emplace(index, members.size());
 	if (added) {
 		members.push_back(GetNativeType(ctx, type.InternalType()));
 		types.push_back(type.id());
@@ -75,9 +75,9 @@ void ExpressionInputTypeGenerator::Generate(BoundReferenceExpression &expr) {
 }
 
 vector<llvm::Value *> ExpressionIRGenerator::Generate(llvm::Value *input,
-                                                      const unordered_map<storage_t, unsigned> &ref_map) {
+                                                      const unordered_map<storage_t, unsigned> &input_tuple_index) {
 	this->input = input;
-	this->ref_map = &ref_map;
+	this->input_tuple_index = &input_tuple_index;
 	vector<llvm::Value *> res;
 	res.reserve(expressions.size());
 	for (auto &expr : expressions) {

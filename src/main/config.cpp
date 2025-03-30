@@ -157,6 +157,7 @@ static const ConfigurationOption internal_options[] = {
     DUCKDB_GLOBAL(IndexScanMaxCount),
     DUCKDB_LOCAL(EnableHTTPLoggingSetting),
     DUCKDB_LOCAL(HTTPLoggingOutputSetting),
+    DUCKDB_LOCAL(QueryCompilationSetting),
     FINAL_SETTING};
 
 vector<ConfigurationOption> DBConfig::GetOptions() {

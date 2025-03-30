@@ -8,10 +8,13 @@
 
 #pragma once
 
-#include "duckdb/common/types.hpp"
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/type_util.hpp"
+#include "duckdb/common/types.hpp"
 #include "duckdb/common/types/cast_helpers.hpp"
+
+#include <llvm-19/llvm/IR/IRBuilder.h>
+#include <llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -25,6 +28,13 @@ struct SubtractOperator {
 	template <class TA, class TB, class TR>
 	static inline TR Operation(TA left, TB right) {
 		return left - right;
+	}
+
+	static inline llvm::Value *GenerateIR(llvm::IRBuilder<> &b, llvm::Value *lhs, llvm::Value *rhs) {
+		if (lhs->getType()->isFloatingPointTy() || rhs->getType()->isFloatingPointTy()) {
+			return b.CreateFSub(lhs, rhs);
+		}
+		return b.CreateSub(lhs, rhs);
 	}
 };
 
@@ -83,6 +93,13 @@ struct SubtractOperatorOverflowCheck {
 			                          NumericHelper::ToString(left), NumericHelper::ToString(right));
 		}
 		return result;
+	}
+
+	static inline llvm::Value *GenerateIR(llvm::IRBuilder<> &b, llvm::Value *lhs, llvm::Value *rhs) {
+		if (lhs->getType()->isFloatingPointTy() || rhs->getType()->isFloatingPointTy()) {
+			return b.CreateFSub(lhs, rhs);
+		}
+		return b.CreateSub(lhs, rhs);
 	}
 };
 

@@ -10,7 +10,8 @@ bool BoundReferenceExpression::IsCompilable() const {
 }
 
 llvm::Value *ExpressionIRGenerator::Generate(BoundReferenceExpression &expr) {
-	return b.CreateStructGEP(input->getType(), input, ref_map->at(expr.index));
+	return b.CreateStructGEP(input->getType(), input, input_tuple_index->at(expr.index),
+	                         "input[" + to_string(expr.index) + "]");
 }
 
 } // namespace duckdb

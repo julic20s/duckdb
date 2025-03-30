@@ -51,8 +51,7 @@ public:
 		return *mod;
 	}
 
-	unique_ptr<JITFunction> CreateFunction(llvm::StringRef name, llvm::FunctionType *type,
-	                                       llvm::GlobalValue::LinkageTypes link);
+	JITFunction CreateFunction(llvm::StringRef name, llvm::FunctionType *type, llvm::GlobalValue::LinkageTypes link);
 
 private:
 	unique_ptr<llvm::LLVMContext> ctx;

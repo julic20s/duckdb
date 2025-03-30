@@ -13,7 +13,11 @@
 #include "duckdb/execution/jit_engine.hpp"
 #include "duckdb/execution/physical_operator.hpp"
 #include "duckdb/planner/expression.hpp"
-#include <llvm-19/llvm/IR/IRBuilder.h>
+
+#ifdef DUCKDB_ENABLE_LLVM
+#include <llvm/IR/Function.h>
+#include <llvm/IR/IRBuilder.h>
+#endif
 
 namespace duckdb {
 
@@ -26,6 +30,11 @@ public:
 	                   idx_t estimated_cardinality);
 
 	vector<unique_ptr<Expression>> select_list;
+
+#ifdef DUCKDB_ENABLE_LLVM
+	//! Enable compilation
+	bool enable_compilation = false;
+#endif
 
 public:
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
@@ -46,11 +55,15 @@ public:
 	                     const vector<idx_t> &right_projection_map, const idx_t estimated_cardinality);
 
 private:
-	unique_ptr<JITFunction> GenerateIR(JITEngine &engine) const;
+#ifdef DUCKDB_ENABLE_LLVM
+	bool IsCompilable() const;
+
+	llvm::Function *GetExecuteFn(JITEngine &engine) const;
+	llvm::Function *GetExecuteTupleFn(JITEngine &engine) const;
 
 	void (*execute_fn)(Vector input[], Vector chunk[]);
-
-	mutable JITModule mod{"projection"};
+	mutable JITModule mod {"projection"};
+#endif
 };
 
 } // namespace duckdb

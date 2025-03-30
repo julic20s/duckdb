@@ -13,6 +13,7 @@
 #include "duckdb/planner/expression.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <llvm-19/llvm/IR/Constants.h>
 #include <llvm-19/llvm/IR/DerivedTypes.h>
@@ -21,6 +22,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
+#include <memory>
 
 namespace duckdb {
 
@@ -103,12 +105,16 @@ InsertionOrderPreservingMap<string> PhysicalProjection::ParamsToString() const {
 	}
 	result["__projections__"] = projections;
 
-	JITEngine engine;
-	auto fn = GenerateIR(engine);
-	std::string ir_text;
-	llvm::raw_string_ostream stream(ir_text);
-	fn->Get()->print(stream, nullptr);
-	result["__ir__"] = std::move(ir_text);
+#ifdef DUCKDB_ENABLE_LLVM
+	if (enable_compilation && IsCompilable()) {
+		JITEngine engine;
+		auto fn = GetExecuteTupleFn(engine);
+		std::string ir_text;
+		llvm::raw_string_ostream stream(ir_text);
+		fn->print(stream, nullptr);
+		result["__ir__"] = std::move(ir_text);
+	}
+#endif
 
 	SetEstimatedCardinality(result, estimated_cardinality);
 	return result;
@@ -126,38 +132,55 @@ void PhysicalProjection::BuildPipelines(Pipeline &current, MetaPipeline &meta_pi
 	children[0]->BuildPipelines(current, meta_pipeline);
 }
 
-unique_ptr<JITFunction> PhysicalProjection::GenerateIR(JITEngine &engine) const {
-	llvm::Module &m = mod.Get();
+bool PhysicalProjection::IsCompilable() const {
+	auto is_compilable = [](const std::unique_ptr<Expression> &expr) {
+		return expr->IsCompilable();
+	};
+	return std::all_of(select_list.begin(), select_list.end(), is_compilable);
+}
 
-	auto [input_type, ref_map] = ExpressionInputTypeGenerator(mod.GetContext(), select_list).Generate();
+llvm::Function *PhysicalProjection::GetExecuteTupleFn(JITEngine &engine) const {
+	static constexpr char symbol[] = "ExecuteTuple";
+
+	if (auto fn = mod.Get().getFunction(symbol)) {
+		return fn;
+	}
+
+	auto [input_type, input_tuple_index] = ExpressionInputTypeGenerator(mod.GetContext(), select_list).Generate();
 
 	llvm::IRBuilder<> b(mod.GetContext());
-	auto execute_tuple_fn_type = llvm::FunctionType::get(b.getVoidTy(),
-	                                                     llvm::ArrayRef<llvm::Type *> {
-	                                                         b.getPtrTy(), // input tuple pointer
-	                                                         b.getPtrTy(), // output pointer tuple pointer
-	                                                     },
-	                                                     false);
+	auto fn_type = llvm::FunctionType::get(b.getVoidTy(),
+	                                       llvm::ArrayRef<llvm::Type *> {
+	                                           b.getPtrTy(), // input tuple pointer
+	                                           b.getPtrTy(), // output pointer tuple pointer
+	                                       },
+	                                       false);
 
-	auto fn = mod.CreateFunction("ExecuteTuple", execute_tuple_fn_type, llvm::GlobalValue::InternalLinkage);
-	auto entry = fn->CreateNewBlock("entry");
+	auto fn = mod.CreateFunction(symbol, fn_type, llvm::GlobalValue::InternalLinkage);
+	auto entry = fn.CreateNewBlock("entry");
 	b.SetInsertPoint(entry);
 
 	ExpressionIRGenerator gen(b, select_list);
 
-	auto input = fn->Get()->getArg(0); // struct Tuple *input
-	vector<llvm::Value *> result = gen.Generate(input, ref_map);
+	auto input = fn.Get()->getArg(0); // struct Tuple *input
+	vector<llvm::Value *> result = gen.Generate(input, input_tuple_index);
 
 	// Store all result to output tuple
-	llvm::Value *output_ptr_ptr = fn->Get()->getArg(1);                             // void *output[]
-	llvm::Value *output_ptr = b.CreateLoad(gen.GetOutputArrType(), output_ptr_ptr); // void *output
-	auto offset = llvm::ConstantInt::get(b.getIntPtrTy(m.getDataLayout()), sizeof(void *));
+	llvm::Value *output_ptr_ptr = fn.Get()->getArg(1);                                        // void *output[]
+	llvm::Value *output_ptr = b.CreateLoad(gen.GetOutputArrType(), output_ptr_ptr, "output"); // void *output
+	auto offset = llvm::ConstantInt::get(b.getIntPtrTy(mod.Get().getDataLayout()), sizeof(void *));
 	for (auto r : result) {
-		b.CreateStore(r, output_ptr);                    // *output = r
-		output_ptr = b.CreatePtrAdd(output_ptr, offset); // output++
+		b.CreateStore(r, output_ptr);                                // *output = r
+		output_ptr = b.CreatePtrAdd(output_ptr, offset, "output++"); // output++
 	}
 	b.CreateRetVoid();
-	return fn;
+
+	return fn.Get();
+}
+
+llvm::Function *PhysicalProjection::GetExecuteFn(JITEngine &engine) const {
+	// llvm::Module &m = mod.Get();
+	return GetExecuteTupleFn(engine);
 }
 
 } // namespace duckdb

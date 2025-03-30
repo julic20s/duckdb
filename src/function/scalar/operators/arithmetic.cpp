@@ -613,14 +613,17 @@ ScalarFunction SubtractFun::GetFunction(const LogicalType &left_type, const Logi
 			function.deserialize = DeserializeDecimalArithmetic<SubtractOperator, DecimalSubtractOverflowCheck>;
 			return function;
 		} else if (left_type.IsIntegral()) {
-			return ScalarFunction(
+			ScalarFunction function(
 			    "-", {left_type, right_type}, left_type,
 			    GetScalarIntegerFunction<SubtractOperatorOverflowCheck>(left_type.InternalType()), nullptr, nullptr,
 			    PropagateNumericStats<TrySubtractOperator, SubtractPropagateStatistics, SubtractOperator>);
-
+			function.ir_generate = GenerateScalarBinaryIR<SubtractOperatorOverflowCheck>;
+			return function;
 		} else {
-			return ScalarFunction("-", {left_type, right_type}, left_type,
-			                      GetScalarBinaryFunction<SubtractOperator>(left_type.InternalType()));
+			auto function = ScalarFunction("-", {left_type, right_type}, left_type,
+			                               GetScalarBinaryFunction<SubtractOperator>(left_type.InternalType()));
+			function.ir_generate = GenerateScalarBinaryIR<SubtractOperator>;
+			return function;
 		}
 	}
 
@@ -830,8 +833,9 @@ void MultiplyFun::RegisterFunction(BuiltinFunctions &set) {
 			    nullptr, nullptr,
 			    PropagateNumericStats<TryMultiplyOperator, MultiplyPropagateStatistics, MultiplyOperator>));
 		} else {
-			functions.AddFunction(
-			    ScalarFunction({type, type}, type, GetScalarBinaryFunction<MultiplyOperator>(type.InternalType())));
+			ScalarFunction function({type, type}, type, GetScalarBinaryFunction<MultiplyOperator>(type.InternalType()));
+			function.ir_generate = GenerateScalarBinaryIR<MultiplyOperator>;
+			functions.AddFunction(std::move(function));
 		}
 	}
 	functions.AddFunction(

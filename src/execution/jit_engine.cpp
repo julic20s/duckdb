@@ -23,9 +23,9 @@ llvm::BasicBlock *JITFunction::CreateNewBlock(llvm::Twine name) {
 	return llvm::BasicBlock::Create(fn->getContext(), name, fn);
 }
 
-unique_ptr<JITFunction> JITModule::CreateFunction(llvm::StringRef name, llvm::FunctionType *type,
+JITFunction JITModule::CreateFunction(llvm::StringRef name, llvm::FunctionType *type,
                                                   llvm::GlobalValue::LinkageTypes link) {
-	return make_uniq<JITFunction>(*mod, name, type, link);
+	return JITFunction(*mod, name, type, link);
 }
 
 static void InitializeGlobal() {

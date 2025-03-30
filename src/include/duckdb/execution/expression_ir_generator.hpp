@@ -19,7 +19,7 @@
 #include "duckdb/planner/expression/bound_parameter_expression.hpp"
 #include "duckdb/planner/expression/bound_reference_expression.hpp"
 
-#include <llvm-19/llvm/IR/DerivedTypes.h>
+#include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
@@ -121,7 +121,7 @@ private:
 	vector<llvm::Type *> members;
 	vector<LogicalTypeId> types;
 	// (i-th input, i-th member)
-	unordered_map<storage_t, unsigned> ref_map;
+	unordered_map<storage_t, unsigned> input_tuple_index;
 };
 
 class ExpressionIRGenerator {
@@ -138,7 +138,7 @@ public:
 		return GetNativeType(b.getContext(), expressions[index]->return_type.InternalType());
 	}
 
-	vector<llvm::Value *> Generate(llvm::Value *input, const unordered_map<storage_t, unsigned> &ref_map);
+	vector<llvm::Value *> Generate(llvm::Value *input, const unordered_map<storage_t, unsigned> &input_tuple_index);
 
 private:
 	llvm::Value *Generate(Expression &expr);
@@ -152,7 +152,7 @@ private:
 	const vector<unique_ptr<Expression>> &expressions;
 
 	llvm::Value *input;
-	const unordered_map<storage_t, unsigned> *ref_map;
+	const unordered_map<storage_t, unsigned> *input_tuple_index;
 };
 
 } // namespace duckdb
