@@ -14,6 +14,9 @@
 #include "duckdb/execution/physical_operator.hpp"
 #include "duckdb/planner/expression.hpp"
 
+#include <cstddef>
+#include <llvm-19/llvm/IR/Module.h>
+
 #ifdef DUCKDB_ENABLE_LLVM
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
@@ -58,11 +61,13 @@ private:
 #ifdef DUCKDB_ENABLE_LLVM
 	bool IsCompilable() const;
 
-	llvm::Function *GetExecuteFn(JITEngine &engine) const;
-	llvm::Function *GetExecuteTupleFn(JITEngine &engine) const;
+	using ExecuteFnType = void (*)(Vector input[], Vector chunk[], size_t n);
 
-	void (*execute_fn)(Vector input[], Vector chunk[]);
-	mutable JITModule mod {"projection"};
+	ExecuteFnType GetExecuteFn(ClientContext &context, JITEngine &engine) const;
+	llvm::Function *GetExecuteTupleFn(JITEngine &engine, JITModule &mod, llvm::Type **input_type_ptr = nullptr,
+	                                  unordered_map<storage_t, unsigned> *input_tuple_index_ptr = nullptr) const;
+
+	ExecuteFnType execute_fn = nullptr;
 #endif
 };
 

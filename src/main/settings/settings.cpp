@@ -1,6 +1,7 @@
 #include "duckdb/main/settings.hpp"
 
 #include "duckdb/catalog/catalog_search_path.hpp"
+#include "duckdb/common/enums/query_compilation_mode.hpp"
 #include "duckdb/common/string_util.hpp"
 #include "duckdb/main/attached_database.hpp"
 #include "duckdb/main/client_context.hpp"
@@ -2061,11 +2062,28 @@ void QueryCompilationSetting::ResetLocal(ClientContext &context) {
 }
 
 void QueryCompilationSetting::SetLocal(ClientContext &context, const Value &input) {
-	ClientConfig::GetConfig(context).query_compilation = input.GetValue<bool>();
+	auto parameter = StringUtil::Lower(input.ToString());
+	auto &config = ClientConfig::GetConfig(context);
+	if (parameter == "off") {
+		config.query_compilation = QueryCompilationMode::OFF;
+	} else if (parameter == "on") {
+		config.query_compilation = QueryCompilationMode::ON;
+	} else if (parameter == "with_logging") {
+		config.query_compilation = QueryCompilationMode::WITH_LOGGING;
+	} else {
+		throw ParserException("Unrecognized query compilation mode, expected off, on or with_logging.");
+	}
 }
 
 Value QueryCompilationSetting::GetSetting(const ClientContext &context) {
-	return Value(ClientConfig::GetConfig(context).query_compilation);
+	switch (ClientConfig::GetConfig(context).query_compilation) {
+	case QueryCompilationMode::OFF:
+		return "off";
+	case QueryCompilationMode::ON:
+		return "on";
+	case QueryCompilationMode::WITH_LOGGING:
+		return "with_logging";
+	}
 }
 
 } // namespace duckdb

@@ -28,7 +28,7 @@ set(DUCKDB_MODULE_BASE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD "11" CACHE STRING "C++ standard to enforce")
+set(CMAKE_CXX_STANDARD "17" CACHE STRING "C++ standard to enforce")
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -224,7 +224,7 @@ if(${ENABLE_LLVM})
   message(STATUS "LLVM include dirs: " ${LLVM_INCLUDE_DIRS})
 
   # Use llvm-config --components to list all available components
-  llvm_map_components_to_libnames(DUCKDB_LLVM_LIBS core executionengine irprinter native orcjit support)
+  llvm_map_components_to_libnames(DUCKDB_LLVM_LIBS core executionengine irprinter native orcdebugging orcjit orctargetprocess support)
   message(STATUS "Enabled LLVM components: " ${DUCKDB_LLVM_LIBS})
   link_libraries(${DUCKDB_LLVM_LIBS})
   add_compile_definitions(-DDUCKDB_ENABLE_LLVM)

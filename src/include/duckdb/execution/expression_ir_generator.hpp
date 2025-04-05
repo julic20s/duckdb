@@ -131,14 +131,15 @@ public:
 	}
 
 	llvm::FixedVectorType *GetOutputArrType() {
-		return llvm::FixedVectorType::get(b.getPtrTy(), expressions.size());
+		return llvm::FixedVectorType::get(b.getPtrTy(), static_cast<unsigned>(expressions.size()));
 	}
 
 	llvm::Type *GetOutputType(size_t index) {
 		return GetNativeType(b.getContext(), expressions[index]->return_type.InternalType());
 	}
 
-	vector<llvm::Value *> Generate(llvm::Value *input, const unordered_map<storage_t, unsigned> &input_tuple_index);
+	vector<llvm::Value *> Generate(llvm::Type *input_type, IRValue<void *> input_ptr,
+	                               const unordered_map<storage_t, unsigned> &input_tuple_index);
 
 private:
 	llvm::Value *Generate(Expression &expr);
@@ -151,7 +152,8 @@ private:
 	llvm::IRBuilder<> &b;
 	const vector<unique_ptr<Expression>> &expressions;
 
-	llvm::Value *input;
+	llvm::Type *input_type;
+	IRValue<void *> input_ptr{nullptr};
 	const unordered_map<storage_t, unsigned> *input_tuple_index;
 };
 

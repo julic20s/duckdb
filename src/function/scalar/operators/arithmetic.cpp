@@ -826,12 +826,14 @@ void MultiplyFun::RegisterFunction(BuiltinFunctions &set) {
 			ScalarFunction function({type, type}, type, nullptr, BindDecimalMultiply);
 			function.serialize = SerializeDecimalArithmetic;
 			function.deserialize = DeserializeDecimalArithmetic<MultiplyOperator, DecimalMultiplyOverflowCheck>;
-			functions.AddFunction(function);
+			functions.AddFunction(std::move(function));
 		} else if (TypeIsIntegral(type.InternalType())) {
-			functions.AddFunction(ScalarFunction(
+			ScalarFunction function(
 			    {type, type}, type, GetScalarIntegerFunction<MultiplyOperatorOverflowCheck>(type.InternalType()),
 			    nullptr, nullptr,
-			    PropagateNumericStats<TryMultiplyOperator, MultiplyPropagateStatistics, MultiplyOperator>));
+			    PropagateNumericStats<TryMultiplyOperator, MultiplyPropagateStatistics, MultiplyOperator>);
+			function.ir_generate = GenerateScalarBinaryIR<MultiplyOperatorOverflowCheck>;
+			functions.AddFunction(std::move(function));
 		} else {
 			ScalarFunction function({type, type}, type, GetScalarBinaryFunction<MultiplyOperator>(type.InternalType()));
 			function.ir_generate = GenerateScalarBinaryIR<MultiplyOperator>;

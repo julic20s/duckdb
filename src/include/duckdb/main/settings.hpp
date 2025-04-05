@@ -957,7 +957,7 @@ struct HTTPLoggingOutputSetting {
 struct QueryCompilationSetting {
 	static constexpr const char *Name = "query_compilation";
 	static constexpr const char *Description = "Enable Just-In-Time query compilation";
-	static constexpr const LogicalTypeId InputType = LogicalTypeId::BOOLEAN;
+	static constexpr const LogicalTypeId InputType = LogicalTypeId::VARCHAR;
 	static void SetLocal(ClientContext &context, const Value &parameter);
 	static void ResetLocal(ClientContext &context);
 	static Value GetSetting(const ClientContext &context);

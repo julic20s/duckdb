@@ -3,6 +3,7 @@
 #include "duckdb/common/enums/expression_type.hpp"
 #include "duckdb/common/exception.hpp"
 #include "duckdb/common/types.hpp"
+#include "duckdb/ir/ir_value.hpp"
 #include "duckdb/parser/expression_util.hpp"
 #include "duckdb/planner/expression.hpp"
 #include "duckdb/planner/expression/bound_constant_expression.hpp"
@@ -74,9 +75,10 @@ void ExpressionInputTypeGenerator::Generate(BoundReferenceExpression &expr) {
 	ReferenceInput(expr.index, expr.return_type);
 }
 
-vector<llvm::Value *> ExpressionIRGenerator::Generate(llvm::Value *input,
+vector<llvm::Value *> ExpressionIRGenerator::Generate(llvm::Type *input_type, IRValue<void *> input_ptr,
                                                       const unordered_map<storage_t, unsigned> &input_tuple_index) {
-	this->input = input;
+	this->input_type = input_type;
+	this->input_ptr = input_ptr;
 	this->input_tuple_index = &input_tuple_index;
 	vector<llvm::Value *> res;
 	res.reserve(expressions.size());

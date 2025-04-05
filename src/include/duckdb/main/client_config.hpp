@@ -12,6 +12,7 @@
 #include "duckdb/common/common.hpp"
 #include "duckdb/common/enums/output_type.hpp"
 #include "duckdb/common/enums/profiler_format.hpp"
+#include "duckdb/common/enums/query_compilation_mode.hpp"
 #include "duckdb/common/progress_bar/progress_bar.hpp"
 #include "duckdb/common/types/value.hpp"
 #include "duckdb/main/profiling_info.hpp"
@@ -146,7 +147,7 @@ struct ClientConfig {
 	string http_logging_output;
 
 	//! Enable LLVM JIT query compilation
-	bool query_compilation = true;
+	QueryCompilationMode query_compilation = QueryCompilationMode::ON;
 
 public:
 	static ClientConfig &GetConfig(ClientContext &context);

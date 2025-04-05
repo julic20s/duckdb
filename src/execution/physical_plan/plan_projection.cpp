@@ -39,7 +39,7 @@ unique_ptr<PhysicalOperator> PhysicalPlanGenerator::CreatePlan(LogicalProjection
 
 	auto projection = make_uniq<PhysicalProjection>(op.types, std::move(op.expressions), op.estimated_cardinality);
 	projection->children.push_back(std::move(plan));
-	projection->enable_compilation = ClientConfig::GetConfig(context).query_compilation;
+	projection->enable_compilation = ClientConfig::GetConfig(context).query_compilation != QueryCompilationMode::OFF;
 	return std::move(projection);
 }
 

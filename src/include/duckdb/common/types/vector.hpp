@@ -16,6 +16,11 @@
 #include "duckdb/common/types/value.hpp"
 #include "duckdb/common/types/vector_buffer.hpp"
 #include "duckdb/common/vector_size.hpp"
+#include "duckdb/ir/ir_value.hpp"
+
+#include <llvm-19/llvm/ADT/Twine.h>
+#include <llvm-19/llvm/IR/IRBuilder.h>
+#include <llvm-19/llvm/IR/Value.h>
 
 namespace duckdb {
 
@@ -278,6 +283,12 @@ struct ConstantVector {
 		         vector.GetVectorType() == VectorType::FLAT_VECTOR);
 		return vector.data;
 	}
+
+	static inline llvm::Value *GetDataIR(llvm::IRBuilder<> &b, IRValue<Vector *> vector_ptr, llvm::Twine name = "") {
+		auto data_ptr = b.CreatePtrAdd(vector_ptr.v, b.getInt64(offsetof(Vector, data)), name + ".data.ptr");
+		return b.CreateLoad(b.getPtrTy(), data_ptr, name + ".data");
+	}
+
 	template <class T>
 	static inline const T *GetData(const Vector &vector) {
 		return (const T *)ConstantVector::GetData(vector);
@@ -336,6 +347,11 @@ struct FlatVector {
 	static inline data_ptr_t GetData(Vector &vector) {
 		return ConstantVector::GetData(vector);
 	}
+
+	static inline llvm::Value *GetDataIR(llvm::IRBuilder<> &b, IRValue<Vector *> vector_ptr, llvm::Twine name = "") {
+		return ConstantVector::GetDataIR(b, vector_ptr, name);
+	}
+
 	template <class T>
 	static inline const T *GetData(const Vector &vector) {
 		return ConstantVector::GetData<T>(vector);
